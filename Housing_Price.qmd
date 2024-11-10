@@ -1,0 +1,195 @@
+---
+title: "Housing_Price"
+format: html
+---
+```{r}
+data = read.csv("D:/Fall/Predictive/Housing Data/data.csv")
+data
+```
+```{r}
+print(paste("Number of Rows: ", nrow(data)))
+print(paste("Number of Columns: ", ncol(data)))
+
+```
+```{r}
+summary(data)
+```
+```{r}
+unique(data$city)
+```
+```{r}
+data_df = data[c("price","bedrooms","bathrooms","sqft_living","sqft_lot","floors","condition","view","yr_built")]
+data_df
+```
+```{r}
+sum(is.na(data_df)) #Checking NUll Values
+```
+```{r}
+data_df$yr_old = as.integer(format(Sys.Date(),"%Y"))- data_df$yr_built
+data_df
+```
+```{r}
+drops = c("yr_built","oldbuilt")
+
+library(dplR)
+data_df = data_df[,setdiff(names(data_df),"yr_built","oldbuilt")
+
+data_df = data_df[,!(names(data_df)%in%drops)]
+                  
+data_df
+
+```
+```{r}
+cor(data_df)
+```
+```{r}
+library(ggcorrplot)
+
+corr = round(cor(data_df),1)
+
+ggcorrplot(corr,
+           type = "lower",
+           lab = TRUE,
+           lab_size = 3,
+           colors= c("indianred1","white", "lightgreen"),
+           title = "Correlation Chart",
+           ggtheme = theme_light())
+```
+```{r}
+## Scatterplot Matrix 
+
+pairs(~ bedrooms + sqft_living + floors + condition, data = data_df,
+      main = "Scatterplot Matrix")
+
+```
+#There appears to be a trend in this cell, where properties with more bedrooms tend to have larger square footage (sqft_living). This indicates a positive correlation.
+
+# No clear trend or pattern is visible, suggesting that the condition of the property does not vary systematically with the number of bedrooms.
+
+#This also lacks a clear trend, implying little or no direct relationship between the number of floors and the condition rating.
+
+
+```{r}
+par(mfrow =c(2,3))
+boxplot(data_df$bedrooms,main ="Bedrooms")
+boxplot(data_df$sqft_living,main ="Sqft_Living")
+boxplot(data_df$floors,main ="Floors")
+boxplot(data_df$condition,main ="Condition")
+boxplot(data_df$view,main ="View")
+boxplot(data_df$yr_old,main ="Yr_old")
+```
+# Sqft_Living and Bedrooms have notable outliers, indicating a few properties with significantly higher values compared to the norm.
+
+#Variables like Sqft_Living show skewed distributions, while others like Condition and Floors are more evenly distributed.
+
+#Variables such as Floors and Condition are tightly distributed, suggesting limited variation in the number of floors and condition ratings across properties.
+
+
+
+```{r}
+theme_set(theme_classic())
+
+plot = ggplot(data_df,aes(bedrooms,floors))
+
+plot + geom_count(col="tomato3",show.legend = T) +
+  labs(y="Floors",
+       x="Bedrooms",
+       title = "Bedroom vs Floors")
+
+```
+The chart shows that most properties in the dataset have 2 to 4 bedrooms and 1 to 2 floors, suggesting a predominance of standard family homes. 
+
+The most common configuration is 2 bedrooms with 2 floors. Larger homes with more bedrooms or floors are relatively rare, indicating that these might be luxury or custom properties.
+
+```{r}
+plot(x =data_df$sqft_living,y= data_df$sqft_lot,
+     xlab = "sqft_living",
+     ylab = "sqft_lot",
+     xlim = c(0,3000),
+     ylim = c(0,20000),
+     main = "sqft_living Vs sqft_lot")
+```
+There is no clear linear correlation, with a wide spread of data points indicating variability. Most properties cluster around lower square footage values, while a few outliers exhibit larger sizes in both categories. This suggests that additional factors may influence the relationship between these two variables.
+
+```{r}
+
+
+
+#detach("package:e1071", unload = TRUE)  # Unload the e1071 package
+
+#install.packages("e1071")
+
+
+library(e1071)
+
+par(mfrow =c(2,3))
+
+plot(density(data_df$bedrooms),main ="Density Plot: Bedrooms", ylab ="Frequency",
+     sub= paste("Skewness:",round(e1071 ::skewness(data_df$bedrooms),2)))
+polygon(density(data_df$bedrooms),col = "green")
+
+plot(density(data_df$sqft_living),main ="Density Plot: Sqft_living", ylab ="Frequency",
+     sub= paste("Skewness:",round(e1071 ::skewness(data_df$sqft_living),2)))
+polygon(density(data_df$sqft_living),col ="orange")
+
+
+plot(density(data_df$sqft_lot),main ="Density Plot: Sqft_lot", ylab ="Frequency",
+     sub= paste("Skewness:",round(e1071 ::skewness(data_df$sqft_lot),2)))
+polygon(density(data_df$sqft_lot),col ="green")
+
+
+
+plot(density(data_df$condition),main ="Density Plot: Condition", ylab ="Frequency",
+     sub= paste("Skewness:",round(e1071 ::skewness(data_df$condition),2)))
+polygon(density(data_df$condition),col ="yellow")
+
+plot(density(data_df$floors),main ="Density Plot: Floors", ylab ="Frequency",
+     sub= paste("Skewness:",round(e1071 ::skewness(data_df$floors),2)))
+polygon(density(data_df$floors),col ="pink")
+
+plot(density(data_df$yr_old),main ="Density Plot: Yr_old", ylab ="Frequency",
+     sub= paste("Skewness:",round(e1071 ::skewness(data_df$yr_old),2)))
+polygon(density(data_df$yr_old),col ="purple")
+
+
+
+
+
+
+
+
+
+
+
+```
+```{r}
+
+# Regression between Sqft_living and Price
+
+ggplot(data_df,aes(y=price,x=sqft_living)) +
+  geom_point() +
+  xlim(0,9000)+
+  ylim(0,5000000)+
+  geom_smooth(formula = y~x,method ="lm")
+
+
+```
+```{r}
+
+model = lm(price~bedrooms + sqft_living+ floors+ sqft_lot+condition + view + yr_old, data = data_df)
+
+summary(model)
+
+```
+The model suggests that sqft_living, floors, condition, view, and yr_old have a significant relationship with price, while bedrooms and sqft_lot also influence the price, but their effect may be less intuitive.
+
+A key takeaway is that larger homes (sqft_living), better condition, and properties with a view tend to be more expensive, while older homes and homes with more bedrooms may decrease the price.
+
+```{r}
+````
+
+
+
+
+
+
